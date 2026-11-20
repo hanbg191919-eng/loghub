@@ -135,6 +135,19 @@ pub async fn delete(pool: &PgPool, actor: &UserRow, id: i64) -> Result<(), AppEr
     Ok(())
 }
 
+/// 추천용: 모든 태그의 (이름, 동의어) 목록. 로그인한 누구나 추천을 받을 수 있으므로 권한 검사 없음
+pub(crate) async fn all_terms(pool: &PgPool) -> Result<Vec<(String, Vec<String>)>, AppError> {
+    let rows = sqlx::query_as::<_, (String, Vec<String>)>(
+        "SELECT v.name::text, \
+                COALESCE(array_agg(a.alias::text) FILTER (WHERE a.alias IS NOT NULL), ARRAY[]::text[]) \
+         FROM tag_vocabulary v LEFT JOIN tag_aliases a ON a.vocabulary_id = v.id \
+         GROUP BY v.id",
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(rows)
+}
+
 async fn get(pool: &PgPool, id: i64) -> Result<TagVocabulary, AppError> {
     sqlx::query_as::<_, TagVocabulary>(&format!(
         "{SELECT_VOCABULARY} WHERE v.id = $1 GROUP BY v.id"
