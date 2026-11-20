@@ -19,7 +19,7 @@
 
 | 파일 | 내용 |
 | --- | --- |
-| `api/migrations/20261120000000_add_tag_vocabulary.sql` | `tag_vocabulary`(id, name UNIQUE, description, created_at, updated_at), `tag_aliases`(vocabulary_id, alias, PK 둘, `ON DELETE CASCADE`) |
+| `api/migrations/20261120100000_add_tag_vocabulary.sql` (팀 PR #18 과 버전이 겹치지 않도록 번호 조정) | `tag_vocabulary`(id, name UNIQUE, description, created_at, updated_at), `tag_aliases`(vocabulary_id, alias, PK 둘, `ON DELETE CASCADE`) |
 
 게시물 태그(`tags`, `post_tags`)와 **외래 키로 연결하지 않는다**. 추천 후보 목록일 뿐이라, 목록에서 지워도 게시물 태그는 남는다.
 
