@@ -159,7 +159,7 @@ frontend/src/
 | `comments` | `20260913000000_init.sql` | 댓글 | `post_id`, `user_id`, `content`, `updated_at` |
 | `post_stars` | `20260914000000_add_auth_stars_profile.sql` | 별 | PK(`post_id`, `user_id`) |
 | `post_attachments` | `20260913000001_add_post_attachments.sql` | 첨부 릴리즈 파일 | `post_id`, `original_name`, `hashed_name` (UNIQUE, 디스크 파일명), `size_bytes`, `sent_at` |
-| `tag_vocabulary` / `tag_aliases` | `20261120000000_add_tag_vocabulary.sql` | 태그 추천 후보 목록 (관리자 관리, `tags` 와 별개) | `name` (UNIQUE, 소문자), `description`, `aliases` (PK(`vocabulary_id`, `alias`), CASCADE) |
+| `tag_vocabulary` / `tag_aliases` | `20261120100000_add_tag_vocabulary.sql` | 태그 추천 후보 목록 (관리자 관리, `tags` 와 별개) | `name` (UNIQUE, 소문자), `description`, `aliases` (PK(`vocabulary_id`, `alias`), CASCADE) |
 
 - 데이터베이스 생성은 마이그레이션이 아니라 `main.rs` 시작 단계(`Postgres::create_database`)에서 한다. 마이그레이션 SQL 은 이미 접속한 DB 안에서 실행되므로 `CREATE DATABASE` 를 넣을 수 없다.
 - 스키마 변경은 기존 파일을 수정하지 말고 **새 마이그레이션 파일을 추가**한다. 이미 적용된 마이그레이션은 절대 수정하지 않는다. (수정하면 서버 기동 시 체크섬 불일치로 실패하며, 이미 적용한 팀원은 DB 를 지우고 다시 만들어야 한다.)
