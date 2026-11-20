@@ -78,6 +78,18 @@ export interface TagCount {
   postCount: number
 }
 
+/** POST /api/tags/suggestions 응답의 추천 태그. score 는 0~1 */
+export interface TagSuggestion {
+  name: string
+  score: number
+}
+
+export interface TagSuggestionResponse {
+  tags: TagSuggestion[]
+  /** 추천 방식. 지금은 키워드 매칭(keyword)만 있다 */
+  source: 'keyword' | 'jev'
+}
+
 /** 태그 추천용 목록 항목 (GET /api/admin/tag-vocabulary) */
 export interface TagVocabulary {
   id: number

@@ -203,6 +203,7 @@ frontend/src/
 | GET / POST | `/api/posts/{id}/attachments` | – / 작성자 | 첨부 목록 / 업로드 (multipart: `file`, `hashedName`, `sentAt`) |
 | GET / DELETE | `/api/attachments/{hashedName}` | – / 작성자 | 다운로드 (원본 파일명) / 삭제 |
 | GET | `/api/tags` | – | 사용 중인 태그와 게시물 수 |
+| POST | `/api/tags/suggestions` | 필요 | 제목·본문으로 태그 추천 (태그 추천 목록 안에서, 최대 5개) |
 | GET | `/api/admin/users` | 관리자 | 전체 사용자 목록 (`q` 닉네임 검색, 페이지) |
 | PUT | `/api/admin/users/{nickname}/role` | 최고 관리자 | 관리자 권한 부여/해제 (`role`: `user` \| `admin`) |
 | GET / POST | `/api/admin/tag-vocabulary` | 관리자 | 태그 추천 목록 조회 / 추가 (`name`, `description`, `aliases`) |
