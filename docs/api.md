@@ -177,6 +177,41 @@ interface Draft { title: string; content: string; tagsInput: string; updatedAt: 
 - 최고 관리자만. `role` 은 `user` 또는 `admin` (이 API 로 `super_admin` 을 만들 수 없음).
 - 자기 자신이나 다른 최고 관리자의 역할은 바꿀 수 없음 (400). 200 + `UserProfile`.
 
+### 태그 추천 목록 (`/api/admin/tag-vocabulary`)
+태그 자동 추천이 고르는 후보 목록. 관리자/최고 관리자만 호출 가능 (아니면 403). 게시물의 실제 태그(`GET /api/tags`)와는 별개라서, 목록에서 지워도 기존 게시물의 태그는 남는다.
+
+`TagVocabulary`:
+```json
+{
+  "id": 1,
+  "name": "react",
+  "description": "React 라이브러리",
+  "aliases": ["jsx", "usestate", "리액트"],
+  "createdAt": "2026-11-20T06:24:10Z",
+  "updatedAt": "2026-11-20T06:24:10Z"
+}
+```
+- `name`, `aliases` 는 게시물 태그와 같은 규칙으로 정규화된다 (앞뒤 공백·선행 `#` 제거, 소문자). 각 50자 이하.
+- `aliases` 는 중복과 `name` 과 같은 값을 빼고 저장한다. 최대 30개, 이름순. `description` 은 200자 이하.
+
+#### GET /api/admin/tag-vocabulary
+- 200 + `TagVocabulary[]` (이름순).
+
+#### POST /api/admin/tag-vocabulary
+```json
+{ "name": "React", "description": "React 라이브러리", "aliases": ["JSX", "useState", "리액트"] }
+```
+- `description`, `aliases` 는 선택. 201 + `TagVocabulary`. 이름이 비면 400, 이미 있는 이름이면 409.
+
+#### PATCH /api/admin/tag-vocabulary/{id}
+```json
+{ "name": "react", "description": "...", "aliases": ["hooks"] }
+```
+- 보낸 필드만 바뀐다. `aliases` 는 전체 교체. 200 + `TagVocabulary`. 없는 id 404, 다른 항목과 이름이 겹치면 409.
+
+#### DELETE /api/admin/tag-vocabulary/{id}
+- 204. 동의어도 함께 삭제. 없는 id 404.
+
 ## 게시물
 
 ### GET /api/posts
@@ -321,5 +356,6 @@ const { url } = await fetch('/api/images', { method: 'POST', body: form }).then(
 | PostDetailPage | `GET /api/posts/{id}`, 댓글 목록/작성/삭제, 별 토글, 게시물 삭제, 첨부 다운로드, 작성자에게 `/posts/{id}/edit` 수정 링크 노출 |
 | WritePage (`/write`, `/posts/{id}/edit`) | `POST /api/posts` 또는 `PATCH /api/posts/{id}` → 첨부파일마다 `POST /api/posts/{id}/attachments`, 기존 첨부 삭제는 `DELETE /api/attachments/{hashedName}`. 임시저장(`GET`/`PUT`/`DELETE /api/users/me/draft`)은 새 글 작성 모드에서만 동작 |
 | MyPage | `GET /api/users/me/posts`, `PATCH /api/users/me`, `POST /api/auth/logout` |
+| AdminPage (`/admin`) | `GET /api/admin/users`, `PUT /api/admin/users/{nickname}/role`, 태그 목록 영역은 `GET`/`POST`/`PATCH`/`DELETE /api/admin/tag-vocabulary` + 후보 표시용 `GET /api/tags` |
 
-아직 UI 가 없는 API: 댓글 수정, 비밀번호 변경, 다른 사용자 프로필/게시물, 태그 목록.
+아직 UI 가 없는 API: 댓글 수정, 비밀번호 변경, 다른 사용자 프로필/게시물.

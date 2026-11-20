@@ -78,6 +78,19 @@ export interface TagCount {
   postCount: number
 }
 
+/** 태그 추천용 목록 항목 (GET /api/admin/tag-vocabulary) */
+export interface TagVocabulary {
+  id: number
+  /** 추천할 태그 이름 (소문자) */
+  name: string
+  /** 태그 설명 한 줄. 없으면 빈 문자열 */
+  description: string
+  /** 동의어·키워드 (소문자, 이름순) */
+  aliases: string[]
+  createdAt: string
+  updatedAt: string
+}
+
 /** GET /api/admin/users 목록 항목 */
 export interface AdminUserSummary {
   id: number
