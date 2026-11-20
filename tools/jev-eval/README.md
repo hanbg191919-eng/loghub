@@ -110,7 +110,7 @@ export JEV_API_URL='공식 문서의 엔드포인트'
 node eval.mjs run
 ```
 
-조절 가능한 환경 변수: `JEV_THRESHOLD` (기본 0.6), `JEV_TIMEOUT_MS` (기본 5000), `LOGHUB_URL` (기본 http://127.0.0.1:8080), `LOGHUB_ADMIN_NICKNAME` (기본 admin).
+조절 가능한 환경 변수: `JEV_THRESHOLD` (기본 0.6), `JEV_MODEL` (기본 jev-latest), `JEV_API_URL` (기본 https://api.typesafe.ai/v1/systemone), `JEV_TIMEOUT_MS` (기본 5000), `LOGHUB_URL` (기본 http://127.0.0.1:8080), `LOGHUB_ADMIN_NICKNAME` (기본 admin).
 
 ### 6. 판단과 기록
 
