@@ -19,6 +19,7 @@ const ADMIN_NICKNAME = env('LOGHUB_ADMIN_NICKNAME', 'admin')
 const ADMIN_PASSWORD = env('LOGHUB_ADMIN_PASSWORD')
 const JEV_API_URL = env('JEV_API_URL')
 const JEV_API_KEY = env('JEV_API_KEY')
+const JEV_MODEL = env('JEV_MODEL', 'jev-latest')
 const JEV_THRESHOLD = Number(env('JEV_THRESHOLD', '0.6'))
 const JEV_TIMEOUT_MS = Number(env('JEV_TIMEOUT_MS', '5000'))
 
@@ -38,18 +39,40 @@ const TITLE_MAX_CHARS = 200
  * @param {AbortSignal} signal 타임아웃용. fetch 에 그대로 넘긴다
  * @returns {Promise<{ name: string, score: number }[]>} 후보 이름과 0~1 확률. 순서·개수 제한은 호출부가 처리
  *
- * 팀원 참고: 검색으로 찾은 제3자 글에 따르면 아래와 같다고 하지만 **공식 문서로 확인되지 않았다**.
- *   - POST https://api.typesafe.ai/v1/systemone, 헤더 Authorization: Bearer <키>
- *   - 모델 ID jev-latest
- * 확인할 것: 후보 목록을 넘기는 필드, 여러 개 선택(다중 라벨) 지원 여부, 후보 수·입력 길이 제한, 응답 형식.
- * 한 번에 하나만 고를 수 있다면 후보마다 "이 태그가 맞나?" 를 따로 묻는 방식도 가능하지만 호출 수가 늘어난다.
+ * 팀원 참고: 공식 문서 기준 (2026-11-20 확인)
+ *   - POST https://api.typesafe.ai/v1/systemone, 헤더 Authorization: Bearer <키>  (https://docs.typesafe.ai/api/system-one)
+ *   - 모델은 요청 본문 `model` 필드. 예시는 별칭 jev-latest, 고정 ID 는 jev-1.14.0  (https://docs.typesafe.ai/models)
+ *   - Choice 질문은 후보 중 **하나만** 고른다 (확률 합 1). 다중 라벨이 없으므로 후보마다 Noul(예/아니오) 질문을 하나씩 만든다.
+ *     질문 여러 개를 한 요청에 담을 수 있고 병렬로 평가되므로 HTTP 호출은 글당 1회, 질문 수만 후보 수만큼 늘어난다.
+ *   - 응답: answers.<질문 ID>.noul = 0~1 확률 ("예" 일 확률)
+ *   - 질문 수 제한은 없고 컨텍스트 한도만 있다 (요청 전체 64k 토큰, state + 질문 하나 32k 토큰)
  */
 async function callJev({ title, body, candidates }, signal) {
-  void title
-  void body
-  void candidates
-  void signal
-  throw new Error('callJev 미구현: README 의 "Jev 호출 구현" 참고')
+  const url = JEV_API_URL ?? 'https://api.typesafe.ai/v1/systemone'
+  // 질문 ID 는 모델에 전달되지 않으므로 태그 이름 대신 순번을 쓰고 응답에서 다시 이름으로 바꾼다
+  const questions = {}
+  candidates.forEach((c, i) => {
+    questions[`t${i}`] = {
+      type: 'noul',
+      instructions: `이 글의 주제를 나타내는 태그로 "${c.name}" (${c.description}) 이(가) 적절한가? 글이 이 주제를 직접 다루면 예, 지나가듯 언급하거나 비교 대상으로만 나오면 아니오.`,
+    }
+  })
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${JEV_API_KEY}` },
+    body: JSON.stringify({ model: JEV_MODEL, state: { title, body }, questions }),
+    signal,
+  })
+  if (!res.ok) {
+    // 응답 본문만 남긴다. 요청 헤더(키)는 로그에 넣지 않는다
+    const detail = (await res.text().catch(() => '')).slice(0, 200)
+    throw new Error(`Jev HTTP ${res.status} ${detail}`)
+  }
+  const data = await res.json()
+  return candidates
+    .map((c, i) => ({ name: c.name, score: data.answers?.[`t${i}`]?.noul }))
+    .filter((t) => typeof t.score === 'number')
 }
 
 // ---------------------------------------------------------------------------
