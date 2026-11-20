@@ -12,5 +12,6 @@
   { "name": "algorithm", "description": "알고리즘과 자료구조", "aliases": ["dp", "bfs", "dfs", "이분 탐색", "알고리즘"] },
   { "name": "security", "description": "웹 보안", "aliases": ["xss", "csrf", "인증", "보안"] },
   { "name": "performance", "description": "성능 측정과 최적화", "aliases": ["profiling", "benchmark", "최적화", "성능"] },
-  { "name": "retrospective", "description": "프로젝트 회고", "aliases": ["회고", "kpt", "돌아보기"] }
+  { "name": "retrospective", "description": "프로젝트 회고", "aliases": ["회고", "kpt", "돌아보기"] },
+  { "name": "기타", "description": "짧은 글, 일상 글, 공지", "aliases": ["일상", "잡담", "공지", "일정", "근황", "스터디", "모임"] }
 ]
