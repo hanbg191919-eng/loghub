@@ -24,6 +24,8 @@ const JEV_THRESHOLD = Number(env('JEV_THRESHOLD', '0.6'))
 const JEV_TIMEOUT_MS = Number(env('JEV_TIMEOUT_MS', '5000'))
 
 const SUGGEST_MAX = 5
+// 짧은 글·일상 글용 태그. 기술 주제 태그 비교가 목적이므로 후보와 결과에서 뺀다 (s11·s12 는 주제 태그가 없어야 할 글)
+const MISC_TAG = '기타'
 const BODY_MAX_CHARS = 2000
 const TITLE_MAX_CHARS = 200
 
@@ -151,7 +153,9 @@ async function run() {
   const posts = await readJson('sample-posts.json')
   const vocab = await api(cookie, '/api/admin/tag-vocabulary')
   if (vocab.status !== 200) throw new Error(`태그 목록 조회 실패 (${vocab.status})`)
-  const candidates = vocab.data.map(({ name, description }) => ({ name, description }))
+  const candidates = vocab.data
+    .filter(({ name }) => name !== MISC_TAG)
+    .map(({ name, description }) => ({ name, description }))
   const candidateNames = new Set(candidates.map((c) => c.name))
   if (candidates.length === 0) throw new Error('태그 목록이 비어 있습니다. 먼저 `node eval.mjs seed`')
 
@@ -165,7 +169,8 @@ async function run() {
       method: 'POST',
       body: JSON.stringify({ title: post.title, content: post.content, exclude: [] }),
     })
-    const keyword = kw.status === 200 ? kw.data.tags.map((t) => t.name) : null
+    const keyword =
+      kw.status === 200 ? kw.data.tags.map((t) => t.name).filter((n) => n !== MISC_TAG) : null
 
     let jev = null
     let jevError = null

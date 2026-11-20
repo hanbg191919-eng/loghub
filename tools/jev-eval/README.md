@@ -61,7 +61,7 @@ export LOGHUB_ADMIN_PASSWORD='관리자 비밀번호'
 node eval.mjs seed
 ```
 
-`sample-vocabulary.json` 의 태그 14개를 등록한다. 같은 이름이 이미 있으면 건너뛴다 (그 경우 동의어도 기존 것 유지).
+`sample-vocabulary.json` 의 태그 15개(일상 글용 `기타` 포함)를 등록한다. 같은 이름이 이미 있으면 건너뛴다 (그 경우 동의어도 기존 것 유지).
 
 ### 4. 키워드 매칭만 먼저 돌려 보기
 
@@ -140,6 +140,6 @@ node eval.mjs run
 | 파일 | 내용 |
 | --- | --- |
 | `eval.mjs` | `seed` (샘플 태그 등록), `run` (비교 리포트). Node 22, 의존성 없음 |
-| `sample-vocabulary.json` | 샘플 태그 14개 + 설명 + 동의어 |
+| `sample-vocabulary.json` | 샘플 태그 15개 + 설명 + 동의어. `기타` 는 비교에서 뺀다 |
 | `sample-posts.json` | 샘플 글 12개 + 사람이 정한 정답 태그(`expected`). 함정 글 포함 (s02 문맥, s11 코드 블록에만 등장, s12 태그 없음) |
 | `results/` | 실행 리포트 (git 무시) |
