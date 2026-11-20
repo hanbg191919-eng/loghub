@@ -25,6 +25,10 @@ const JEV_TIMEOUT_MS = Number(env('JEV_TIMEOUT_MS', '5000'))
 
 const SUGGEST_MAX = 5
 // 짧은 글·일상 글용 태그. 기술 주제 태그 비교가 목적이므로 후보와 결과에서 뺀다 (s11·s12 는 주제 태그가 없어야 할 글)
+// 팀원 참고: '기타' 는 동의어(일상, 잡담, 공지, 일정, 근황, 스터디, 모임)로만 추천되는 일반 태그다.
+//   서버 코드에 특별 처리는 없고, 태그 목록(관리자 화면 / sample-vocabulary.json)에 넣는 것만으로 동작한다.
+//   그래서 s12 "주간 스터디 일정 공지" 에도 '기타' 가 붙는데, 이 시험에서 그걸 오답으로 세지 않도록 여기서 뺀다.
+//   이름을 바꾸면 sample-vocabulary.json 의 항목 이름도 같이 바꾼다.
 const MISC_TAG = '기타'
 const BODY_MAX_CHARS = 2000
 const TITLE_MAX_CHARS = 200
@@ -153,6 +157,7 @@ async function run() {
   const posts = await readJson('sample-posts.json')
   const vocab = await api(cookie, '/api/admin/tag-vocabulary')
   if (vocab.status !== 200) throw new Error(`태그 목록 조회 실패 (${vocab.status})`)
+  // Jev 후보에서 '기타' 를 뺀다. 넣으면 Jev 에 "기타가 적절한가?" 를 묻게 되는데, 주제 태그 비교와 상관없는 질문이다
   const candidates = vocab.data
     .filter(({ name }) => name !== MISC_TAG)
     .map(({ name, description }) => ({ name, description }))
@@ -169,6 +174,7 @@ async function run() {
       method: 'POST',
       body: JSON.stringify({ title: post.title, content: post.content, exclude: [] }),
     })
+    // 키워드 매칭 결과에서도 '기타' 를 뺀다. 서버는 그대로 추천하지만 Jev 와 같은 조건으로 비교하기 위해서다
     const keyword =
       kw.status === 200 ? kw.data.tags.map((t) => t.name).filter((n) => n !== MISC_TAG) : null
 
