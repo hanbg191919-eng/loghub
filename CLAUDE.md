@@ -196,7 +196,7 @@ frontend/src/
 | GET | `/api/posts` | 선택 | 최신순 목록 + 검색/필터/페이지 |
 | POST | `/api/posts` | 필요 | 게시물 작성 → Discord 알림 |
 | GET | `/api/posts/{id}` | 선택 | 상세 (content, attachments, starred 포함) |
-| PATCH / DELETE | `/api/posts/{id}` | 작성자 / 작성자·관리자 | 수정 (`tags` 는 전체 교체) / 삭제 (첨부파일도 삭제) |
+| PATCH / DELETE | `/api/posts/{id}` | 작성자 / 작성자·관리자 | 수정 (`tags` 는 전체 교체, 동의어는 대표 태그로 저장) / 삭제 (첨부파일도 삭제) |
 | PUT / DELETE | `/api/posts/{id}/star` | 필요 | 별 추가 / 해제 → `{ starred, starCount }` |
 | GET / POST | `/api/posts/{id}/comments` | – / 필요 | 댓글 목록 (오래된 순) / 작성 |
 | PATCH / DELETE | `/api/comments/{id}` | 작성자 / 작성자·글쓴이·관리자 | 댓글 수정 / 삭제 |
