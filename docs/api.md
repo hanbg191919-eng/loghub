@@ -180,6 +180,8 @@ interface Draft { title: string; content: string; tagsInput: string; updatedAt: 
 ### 태그 추천 목록 (`/api/admin/tag-vocabulary`)
 태그 자동 추천이 고르는 후보 목록. 관리자/최고 관리자만 호출 가능 (아니면 403). 게시물의 실제 태그(`GET /api/tags`)와는 별개라서, 목록에서 지워도 기존 게시물의 태그는 남는다.
 
+게시물을 작성·수정할 때 목록에 없는 새 태그는 자동으로 목록에 추가된다 (설명·동의어는 비어 있음). 다른 태그의 동의어로 등록된 이름은 따로 추가하지 않는다. 기존 게시물의 태그는 마이그레이션 `20261122000000_backfill_tag_vocabulary_from_posts.sql` 이 한 번 담는다. 관리자가 목록에서 지운 태그도 누군가 다시 글에 쓰면 다시 추가된다.
+
 `TagVocabulary`:
 ```json
 {

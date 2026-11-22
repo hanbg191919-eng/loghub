@@ -11,6 +11,7 @@ import type { Draft } from '../api/drafts'
 import { ApiError } from '../api/client'
 import { suggestTags } from '../api/tags'
 import { buildHashedRelease } from '../utils/hashFile'
+import { parseTags } from '../utils/tags'
 import type { HashedRelease } from '../utils/hashFile'
 import type { Attachment, TagSuggestion } from '../types'
 import './WritePage.css'
@@ -29,14 +30,6 @@ function formatSavedAt(iso: string) {
 // 제목/태그 입력창에서 Enter 로 폼이 바로 제출되는 것을 막는다
 function preventEnterSubmit(event: KeyboardEvent<HTMLInputElement>) {
   if (event.key === 'Enter') event.preventDefault()
-}
-
-// 쉼표로 구분한 태그 입력을 배열로
-function parseTags(input: string) {
-  return input
-    .split(',')
-    .map((tag) => tag.trim())
-    .filter(Boolean)
 }
 
 function isDraftEmpty(draft: Pick<Draft, 'title' | 'tagsInput' | 'content'>) {
@@ -251,8 +244,14 @@ function WritePage() {
     setSuggestions((prev) => prev.filter((tag) => tag.name !== name))
   }
 
+  // 입력란을 벗어나면 저장될 형태(소문자, `#` 제거, 중복 제거)로 바꿔 보여준다
+  const normalizeTagsInput = () => {
+    const normalized = parseTags(tagsInput).join(', ')
+    if (normalized !== tagsInput) setTagsInput(normalized)
+  }
+
   // 사용자가 직접 입력한 태그와 겹치는 추천은 숨긴다
-  const currentTags = new Set(parseTags(tagsInput).map((tag) => tag.toLowerCase()))
+  const currentTags = new Set(parseTags(tagsInput))
   const visibleSuggestions = suggestions.filter((tag) => !currentTags.has(tag.name))
 
   // 로그인 확인 전이거나 비로그인으로 리다이렉트되는 중에는 그리지 않는다
@@ -307,6 +306,7 @@ function WritePage() {
             type="text"
             value={tagsInput}
             onChange={(event) => setTagsInput(event.target.value)}
+            onBlur={normalizeTagsInput}
             onKeyDown={preventEnterSubmit}
             placeholder="태그 추가 (쉼표로 구분, 예: react, frontend)"
           />
