@@ -135,6 +135,27 @@ pub async fn delete(pool: &PgPool, actor: &UserRow, id: i64) -> Result<(), AppEr
     Ok(())
 }
 
+/// 게시물에 쓰인 태그 중 목록에 없는 것을 목록에 추가한다 (게시물 저장 트랜잭션 안에서 호출).
+/// 다른 태그의 동의어로 이미 등록된 이름은 따로 항목을 만들지 않는다. `tags` 는 정규화된 값이어야 한다.
+pub(crate) async fn add_missing(
+    tx: &mut Transaction<'_, Postgres>,
+    tags: &[String],
+) -> Result<(), AppError> {
+    if tags.is_empty() {
+        return Ok(());
+    }
+    sqlx::query(
+        "INSERT INTO tag_vocabulary (name) \
+         SELECT t FROM unnest($1::text[]) AS t \
+         WHERE NOT EXISTS (SELECT 1 FROM tag_aliases a WHERE a.alias = t) \
+         ON CONFLICT (name) DO NOTHING",
+    )
+    .bind(tags)
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
 /// 추천용: 모든 태그의 (이름, 동의어) 목록. 로그인한 누구나 추천을 받을 수 있으므로 권한 검사 없음
 pub(crate) async fn all_terms(pool: &PgPool) -> Result<Vec<(String, Vec<String>)>, AppError> {
     let rows = sqlx::query_as::<_, (String, Vec<String>)>(

@@ -142,7 +142,7 @@ frontend/src/
 ├── index.css        # 테마 변수 (색상 추가는 여기서만)
 ├── components/      # Header, SearchBar, PostCard, Markdown, Layout ...
 ├── pages/           # HomePage, PostDetailPage, WritePage, MyPage
-├── utils/           # searchQuery (tag:/user: 파싱), hashFile (첨부파일 해시)
+├── utils/           # searchQuery (tag:/user: 파싱), hashFile (첨부파일 해시), tags (태그 정규화)
 └── api/             # fetch 래퍼 (도메인별 파일). 컴포넌트에서 fetch 직접 호출 금지
 ```
 - 검색창 입력은 `parseSearchQuery` → `toPostListParams` 로 `tag`(쉼표 연결), `user`, `q`(공백 연결) 쿼리 파라미터를 만들어 API 에 넘긴다. 클라이언트에서 필터링하지 않는다.
@@ -159,7 +159,7 @@ frontend/src/
 | `comments` | `20260913000000_init.sql` | 댓글 | `post_id`, `user_id`, `content`, `updated_at` |
 | `post_stars` | `20260914000000_add_auth_stars_profile.sql` | 별 | PK(`post_id`, `user_id`) |
 | `post_attachments` | `20260913000001_add_post_attachments.sql` | 첨부 릴리즈 파일 | `post_id`, `original_name`, `hashed_name` (UNIQUE, 디스크 파일명), `size_bytes`, `sent_at` |
-| `tag_vocabulary` / `tag_aliases` | `20261120100000_add_tag_vocabulary.sql` | 태그 추천 후보 목록 (관리자 관리, `tags` 와 별개) | `name` (UNIQUE, 소문자), `description`, `aliases` (PK(`vocabulary_id`, `alias`), CASCADE) |
+| `tag_vocabulary` / `tag_aliases` | `20261120100000_add_tag_vocabulary.sql`, `20261122000000_backfill_tag_vocabulary_from_posts.sql` | 태그 추천 후보 목록 (관리자 관리, 게시물에 쓰인 새 태그는 자동 추가) | `name` (UNIQUE, 소문자), `description`, `aliases` (PK(`vocabulary_id`, `alias`), CASCADE) |
 
 - 데이터베이스 생성은 마이그레이션이 아니라 `main.rs` 시작 단계(`Postgres::create_database`)에서 한다. 마이그레이션 SQL 은 이미 접속한 DB 안에서 실행되므로 `CREATE DATABASE` 를 넣을 수 없다.
 - 스키마 변경은 기존 파일을 수정하지 말고 **새 마이그레이션 파일을 추가**한다. 이미 적용된 마이그레이션은 절대 수정하지 않는다. (수정하면 서버 기동 시 체크섬 불일치로 실패하며, 이미 적용한 팀원은 DB 를 지우고 다시 만들어야 한다.)
@@ -244,6 +244,7 @@ frontend/src/
 - 무차별 대입 대상이 되는 엔드포인트(로그인, 회원가입 등)를 추가하면 `routes/auth.rs` 처럼 `rate_limit::limit_per_ip` 로 감싼다. 일반 조회 API 에는 걸지 않는다.
 - 외부 로그인(OAuth)은 `services/github.rs` 패턴을 따른다: 인가 URL 생성 → state 쿠키 → 콜백에서 토큰 교환·사용자 조회 → `find_or_create`/`link`. 콜백은 브라우저 리다이렉트이므로 오류를 JSON 이 아니라 `/login?error=` 로 돌려보낸다.
 - 비밀번호 규칙은 백엔드 `services/auth.rs::validate_password` 와 프론트 `utils/password.ts` 두 곳에 있다. 바꿀 때 둘 다 수정한다.
+- 태그 정규화 규칙(공백·선행 `#` 제거, 소문자)은 백엔드 `services/tags.rs::normalize_tag` 와 프론트 `utils/tags.ts::normalizeTag` 두 곳에 있다. 바꿀 때 둘 다 수정한다.
 - DB 접근은 sqlx를 사용하고, 쿼리는 PostgreSQL 문법(`$1, $2` 바인딩)으로 작성한다.
 - 환경 변수는 `dotenvy` + `std::env`로 읽는다. 새 변수를 추가하면 `api/.env.example`에 설명과 함께 반드시 추가한다.
 - 에러는 `expect`/`unwrap`으로 패닉시키지 말고 핸들러에서는 적절한 HTTP 상태 코드로 변환한다. (초기화 단계인 `main.rs`의 `expect`는 예외)
