@@ -11,6 +11,7 @@ RUN mkdir src && echo 'fn main() {}' > src/main.rs \
     && cargo build --release --locked \
     && rm -rf src
 
+COPY build.rs ./
 COPY src ./src
 COPY migrations ./migrations
 # 더미 main.rs 로 만든 산출물이 재사용되지 않도록 갱신 시각을 바꾼다

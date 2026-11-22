@@ -19,6 +19,7 @@ destory/
 │   ├── migrations/         # sqlx 마이그레이션 SQL (파일명: YYYYMMDDHHMMSS_설명.sql)
 │   ├── uploads/            # 첨부파일 저장소 (gitignore, UPLOAD_DIR 로 변경 가능)
 │   ├── Cargo.toml
+│   ├── build.rs            # migrations/ 가 바뀌면 다시 빌드 (sqlx::migrate! 가 컴파일 시 SQL 을 포함하므로)
 │   ├── rustfmt.toml        # 포맷 규칙 (max_width=100, edition 2024)
 │   └── .env.example        # 환경 변수 템플릿 (.env 는 커밋 금지)
 ├── frontend/               # React 19 + TypeScript + Vite 8 + react-router 7
@@ -159,7 +160,7 @@ frontend/src/
 | `comments` | `20260913000000_init.sql` | 댓글 | `post_id`, `user_id`, `content`, `updated_at` |
 | `post_stars` | `20260914000000_add_auth_stars_profile.sql` | 별 | PK(`post_id`, `user_id`) |
 | `post_attachments` | `20260913000001_add_post_attachments.sql` | 첨부 릴리즈 파일 | `post_id`, `original_name`, `hashed_name` (UNIQUE, 디스크 파일명), `size_bytes`, `sent_at` |
-| `tag_vocabulary` / `tag_aliases` | `20261120100000_add_tag_vocabulary.sql`, `20261122000000_backfill_tag_vocabulary_from_posts.sql` | 태그 추천 후보 목록 (관리자 관리, 게시물에 쓰인 새 태그는 자동 추가) | `name` (UNIQUE, 소문자), `description`, `aliases` (PK(`vocabulary_id`, `alias`), CASCADE) |
+| `tag_vocabulary` / `tag_aliases` | `20261120100000_add_tag_vocabulary.sql`, `20261122000000_backfill_tag_vocabulary_from_posts.sql`, `20261122100000_canonicalize_post_tag_aliases.sql` (기존 글의 동의어 태그를 대표 태그로) | 태그 추천 후보 목록 (관리자 관리, 게시물에 쓰인 새 태그는 자동 추가) | `name` (UNIQUE, 소문자), `description`, `aliases` (PK(`vocabulary_id`, `alias`), CASCADE) |
 
 - 데이터베이스 생성은 마이그레이션이 아니라 `main.rs` 시작 단계(`Postgres::create_database`)에서 한다. 마이그레이션 SQL 은 이미 접속한 DB 안에서 실행되므로 `CREATE DATABASE` 를 넣을 수 없다.
 - 스키마 변경은 기존 파일을 수정하지 말고 **새 마이그레이션 파일을 추가**한다. 이미 적용된 마이그레이션은 절대 수정하지 않는다. (수정하면 서버 기동 시 체크섬 불일치로 실패하며, 이미 적용한 팀원은 DB 를 지우고 다시 만들어야 한다.)
