@@ -281,6 +281,9 @@ async fn set_tags(
     post_id: i64,
     tags: &[String],
 ) -> Result<(), AppError> {
+    // 동의어는 대표 태그로 바꿔 저장한다 (예: 리액트 → react)
+    let tags = &tag_vocabulary::canonicalize(tx, tags).await?;
+
     sqlx::query("DELETE FROM post_tags WHERE post_id = $1")
         .bind(post_id)
         .execute(&mut **tx)
