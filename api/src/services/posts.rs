@@ -6,7 +6,7 @@ use regex::Regex;
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
 
 use super::{
-    attachments, like_pattern,
+    attachments, like_pattern, tag_vocabulary,
     tags::{TAG_MAX_LEN, normalize_tag},
     truncate_chars,
 };
@@ -281,6 +281,9 @@ async fn set_tags(
     post_id: i64,
     tags: &[String],
 ) -> Result<(), AppError> {
+    // 동의어는 대표 태그로 바꿔 저장한다 (예: 리액트 → react)
+    let tags = &tag_vocabulary::canonicalize(tx, tags).await?;
+
     sqlx::query("DELETE FROM post_tags WHERE post_id = $1")
         .bind(post_id)
         .execute(&mut **tx)
@@ -304,6 +307,9 @@ async fn set_tags(
         .execute(&mut **tx)
         .await?;
     }
+
+    // 새 태그는 태그 추천 목록에도 담는다 (관리자가 나중에 설명·동의어를 붙이거나 지울 수 있다)
+    tag_vocabulary::add_missing(tx, tags).await?;
     Ok(())
 }
 

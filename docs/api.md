@@ -180,6 +180,8 @@ interface Draft { title: string; content: string; tagsInput: string; updatedAt: 
 ### 태그 추천 목록 (`/api/admin/tag-vocabulary`)
 태그 자동 추천이 고르는 후보 목록. 관리자/최고 관리자만 호출 가능 (아니면 403). 게시물의 실제 태그(`GET /api/tags`)와는 별개라서, 목록에서 지워도 기존 게시물의 태그는 남는다.
 
+게시물을 작성·수정할 때 동의어로 등록된 태그는 대표 태그로 바뀌어 저장된다 (예: `리액트` → `react`, 중복은 하나로). 그 이름 자체가 목록의 태그이거나, 같은 동의어가 둘 이상의 태그에 있으면 바꾸지 않는다. 기존 게시물의 태그는 마이그레이션 `20261122100000_canonicalize_post_tag_aliases.sql` 이 같은 규칙으로 한 번 바꿨고, 그 뒤에 추가한 동의어는 이후 저장되는 글부터 적용된다. 목록에 없는 새 태그는 자동으로 목록에 추가된다 (설명·동의어는 비어 있음). 다른 태그의 동의어로 등록된 이름은 따로 추가하지 않는다. 기존 게시물의 태그는 마이그레이션 `20261122000000_backfill_tag_vocabulary_from_posts.sql` 이 한 번 담는다. 관리자가 목록에서 지운 태그도 누군가 다시 글에 쓰면 다시 추가된다.
+
 `TagVocabulary`:
 ```json
 {
@@ -239,7 +241,7 @@ interface Draft { title: string; content: string; tagsInput: string; updatedAt: 
 }
 ```
 - `title` 1~200자, `content` 필수. `excerpt` 생략 시 본문 앞 150자에서 자동 생성 (최대 300자).
-- `tags` 는 소문자 정규화, 선행 `#` 제거, 중복 제거, 최대 10개·각 50자.
+- `tags` 는 소문자 정규화, 선행 `#` 제거, 중복 제거, 최대 10개·각 50자. 태그 추천 목록에 동의어로 등록된 태그는 대표 태그로 바뀐다 (`리액트` → `react`).
 - 201 + `PostDetail`. 저장 후 Discord Webhook 으로 제목·요약·링크·태그를 embed 로 보낸다 (실패해도 응답에는 영향 없음). 본문의 첫 번째 마크다운 이미지(`![alt](https://...)`, 공개 URL 만)가 썸네일로, 작성자 아바타가 아이콘으로 붙는다.
 
 ### GET /api/posts/{id}

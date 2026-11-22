@@ -1,7 +1,7 @@
 //! 태그 추천용 태그 목록(태그 + 동의어) 관리. 관리자/최고 관리자만 변경할 수 있다.
 //! 게시물의 실제 태그(`tags`)와는 별개이며, 추천 기능이 이 목록 안에서만 태그를 고른다.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use sqlx::{PgPool, Postgres, Transaction};
 
@@ -135,6 +135,58 @@ pub async fn delete(pool: &PgPool, actor: &UserRow, id: i64) -> Result<(), AppEr
     Ok(())
 }
 
+/// 동의어로 등록된 태그를 대표 태그 이름으로 바꾼다 (예: `리액트` → `react`). 중복은 제거하고 순서는 유지.
+/// - 그 이름 자체가 목록의 태그이면 바꾸지 않는다 (다른 태그의 동의어이기도 해도 태그 이름이 우선)
+/// - 둘 이상의 태그에 같은 동의어가 있으면 어느 쪽인지 정할 수 없으므로 바꾸지 않는다
+pub(crate) async fn canonicalize(
+    tx: &mut Transaction<'_, Postgres>,
+    tags: &[String],
+) -> Result<Vec<String>, AppError> {
+    if tags.is_empty() {
+        return Ok(Vec::new());
+    }
+    let pairs: Vec<(String, String)> = sqlx::query_as(
+        "SELECT a.alias::text, min(v.name::text) \
+         FROM tag_aliases a JOIN tag_vocabulary v ON v.id = a.vocabulary_id \
+         WHERE a.alias = ANY($1::text[]) \
+           AND NOT EXISTS (SELECT 1 FROM tag_vocabulary v2 WHERE v2.name = a.alias) \
+         GROUP BY a.alias HAVING count(*) = 1",
+    )
+    .bind(tags)
+    .fetch_all(&mut **tx)
+    .await?;
+    Ok(apply_aliases(tags, &pairs.into_iter().collect()))
+}
+
+fn apply_aliases(tags: &[String], to_canonical: &HashMap<String, String>) -> Vec<String> {
+    let mut seen = HashSet::new();
+    tags.iter()
+        .map(|tag| to_canonical.get(tag).unwrap_or(tag).clone())
+        .filter(|tag| seen.insert(tag.clone()))
+        .collect()
+}
+
+/// 게시물에 쓰인 태그 중 목록에 없는 것을 목록에 추가한다 (게시물 저장 트랜잭션 안에서 호출).
+/// 다른 태그의 동의어로 이미 등록된 이름은 따로 항목을 만들지 않는다. `tags` 는 정규화된 값이어야 한다.
+pub(crate) async fn add_missing(
+    tx: &mut Transaction<'_, Postgres>,
+    tags: &[String],
+) -> Result<(), AppError> {
+    if tags.is_empty() {
+        return Ok(());
+    }
+    sqlx::query(
+        "INSERT INTO tag_vocabulary (name) \
+         SELECT t FROM unnest($1::text[]) AS t \
+         WHERE NOT EXISTS (SELECT 1 FROM tag_aliases a WHERE a.alias = t) \
+         ON CONFLICT (name) DO NOTHING",
+    )
+    .bind(tags)
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
 /// 추천용: 모든 태그의 (이름, 동의어) 목록. 로그인한 누구나 추천을 받을 수 있으므로 권한 검사 없음
 pub(crate) async fn all_terms(pool: &PgPool) -> Result<Vec<(String, Vec<String>)>, AppError> {
     let rows = sqlx::query_as::<_, (String, Vec<String>)>(
@@ -258,6 +310,18 @@ mod tests {
     fn too_many_aliases_are_rejected() {
         let raw = (0..=ALIAS_MAX_COUNT).map(|i| format!("a{i}")).collect();
         assert!(normalize_aliases(raw, "x").is_err());
+    }
+
+    #[test]
+    fn aliases_are_replaced_with_canonical_names_without_duplicates() {
+        let map = HashMap::from([
+            ("리액트".to_string(), "react".to_string()),
+            ("golang".to_string(), "go".to_string()),
+        ]);
+        let tags: Vec<String> = ["리액트", "backend", "react", "golang"]
+            .map(String::from)
+            .into();
+        assert_eq!(apply_aliases(&tags, &map), vec!["react", "backend", "go"]);
     }
 
     #[test]
